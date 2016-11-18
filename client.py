@@ -1,4 +1,4 @@
-import sqlite3,requests, os, datetime, sys, base64, urllib.parse, urllib3
+import sqlite3,requests, os, datetime, sys, base64, urllib.parse
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -17,7 +17,6 @@ class Client:
         self.isLoggedIn = False
         self.backend = default_backend()
         self.welcome()
-        urllib3.disable_warnings()
 
     def welcome(self):
         print("*****PASSWORD MANAGER*****")
@@ -73,7 +72,7 @@ class Client:
             update_dict = {"updatePasswordRequest" : username_hash,
                            "replacement_enc_db" : base64.b64encode(new_enc_db),
                            "sig" : signature} #server should
-            statResp = self.return_update_response(update_dict)
+            statResp = self.return_post_response(update_dict)
             if statResp[0] == 400:
                 print("Could not update remote database, bad request")
                 self.menu(username_hash, cipher, private_key)
@@ -91,7 +90,7 @@ class Client:
             username_plain = input("username:")
             username_hash = self.hash_uname(username_plain) #stores hash of username
             password_plain = input("password:")
-            statResp = self.return_login_response(username_hash)
+            statResp = self.return_get_response(username_hash)
             if statResp[0] == 404:
                 self.isLoggedIn = False
                 print("username not found, try again")
@@ -123,7 +122,7 @@ class Client:
 
 
 
-    def return_login_response(self, username_hash):
+    def return_get_response(self, username_hash):
         url = 'https://127.0.0.1:443'
         param_dict = {"checkUsernameHash" : username_hash}
         req = requests.get(url, params=param_dict ,verify=False)
@@ -149,7 +148,7 @@ class Client:
         enc_privkey = self.encrypt_privkey(cipher,privkey)
         enc_db = self.enc_db(cipher)
         to_server = self.genToServerDict(username_hash, pubkey,enc_privkey, salt, enc_db)
-        statResp = self.return_register_response(to_server)
+        statResp = self.return_post_response(to_server)
         if statResp[0] == 400:
             print("Username already taken, try again")
             self.welcome()
@@ -166,32 +165,15 @@ class Client:
         print(to_server)
         return to_server
 
-    def return_register_response(self, param_dict):
+    def return_post_response(self, param_dict):
         url = 'https://127.0.0.1:443'
         req = requests.post(url, params=param_dict, verify=False)
         resp = req.text
         statcode = req.status_code
         print("status code form server:", req.status_code)
         return statcode, resp
-
-
-    def return_update_response(self, param_dict):
-        url = 'https://127.0.0.1:443'
-        req = requests.post(url, params=param_dict, verify=False)
-        resp = req.text
-        statcode = req.status_code
-        print("status code form server:", req.status_code)
-        return statcode, resp
-
-
 
     def local_logout(self, cipher):
-        '''
-            clears local dict
-            clears meta dict
-            returns to welcome screen
-        :return:
-        '''
         self.isLoggedIn = False
         self.enc_db(cipher)
         return self.welcome()
@@ -274,7 +256,10 @@ class Client:
                 self.connex.commit()
             except sqlite3.OperationalError:
                 print("could not update")
-                pass
+                self.add_password()
+            except sqlite3.IntegrityError:
+                print("account already in database")
+                self.add_password()
         elif resp == 1:
             new_account = input("new account:")
             new_username = input("new username:")
@@ -284,8 +269,11 @@ class Client:
                 self.cur.execute('INSERT INTO LocalDB  VALUES (?,?,?,?) ', [new_account, new_username, new_password,  now])
                 self.connex.commit()
             except sqlite3.OperationalError:
-                print("could not add")
-                pass
+                print("could not update")
+                self.add_password()
+            except sqlite3.IntegrityError:
+                print("account already in database")
+                self.add_password()
 
 
     def make_new_keys(self):
