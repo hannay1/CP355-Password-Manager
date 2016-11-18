@@ -273,7 +273,6 @@ class Client:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         public_key = pem2
-        #keys are now strings, so encode in b64
         private_key = base64.b64encode(private_key)
         public_key = base64.b64encode(public_key)
         return public_key, private_key
