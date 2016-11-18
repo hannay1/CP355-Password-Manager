@@ -42,9 +42,6 @@ class Client:
             sys.exit(0)
 
     def menu(self, username_hash, cipher,  private_key):
-        '''
-            routes user input to correct function
-        '''
         print("*****PASSWORD MANAGER*****")
         picd = True
         while picd:
@@ -180,10 +177,6 @@ class Client:
 
 
     def view_db(self):
-        '''
-            prints local password db
-            :return:
-        '''
         print("Current stored passwords:")
         try:
             self.cur.execute('SELECT * FROM LocalDB')
@@ -203,10 +196,6 @@ class Client:
 
 
     def init_db(self):
-        '''
-            makes a db if there is none,
-            if not, then local db is set in local dict
-        '''
         query = 'CREATE TABLE IF NOT EXISTS LocalDB' \
                 '(associated_account TEXT NOT NULL,' \
                 'account_username TEXT PRIMARY KEY NOT NULL,' \
@@ -222,14 +211,6 @@ class Client:
 
 
     def add_password(self):
-        '''
-            takes new password/
-            adds new password to local db,
-            loads local db into local dict
-            re-encrypts local db with public key
-            loads re-encrypted db to meta dict,
-            (server replaces old enc'd db for user)
-        '''
         print("***ADD PASSWORD***")
         picd = True
         while picd:
@@ -277,11 +258,6 @@ class Client:
 
 
     def make_new_keys(self):
-        '''
-            makes a new rsa key pair for user,
-            adds public/private key to local db
-            adds pubkey, enc privkey to meta db dict
-        '''
         private_key = rsa.generate_private_key(public_exponent=65537,
                                                key_size=2048,
                                                backend=self.backend)
